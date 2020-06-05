@@ -1,0 +1,526 @@
+---
+title: "main_sap_rozi_jednorozi"
+author: "Rozi jednorozi"
+date: '29 05 2020 '
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##Inicijalizacija podataka, ciscenje dataframe, obrada testova nad amenitiesima
+
+```{r}
+#file odakle su funkcije i koje biblioteke se koriste
+source("functions.R")
+library(ggplot2)
+
+#Ucitavanje i odabir zeljenih columna
+airbnb<-read.csv("projekt.csv")
+airbnb_main_frame<-as.data.frame(airbnb)
+
+#maknut sam id jer je u izvornom stanju neupotrebljiv, par redova dolje je dodan kako ide redosljed
+airbnb_bitno <- subset(airbnb_main_frame, select = -c( id,bed_type, description, first_review,  host_has_profile_pic,host_identity_verified, host_response_rate, host_since,instant_bookable, last_review, name, longitude,neighbourhood, thumbnail_url, latitude, review_scores_rating))
+
+
+
+#ciscenje svih redaka koji sadrze NA vrijednosti
+airbnb_bitno<- na.omit(airbnb_bitno)
+
+ 
+#dodan id vector, treba nam za funkciju get_positions_of_empty_amenities
+airbnb_bitno=get_Dataframe_With_Id_Row(airbnb_bitno)
+
+#vector koji sadrzi sve pozicije gdje je amenities prazan tj {}
+vector_of_empty_amenities=get_positions_of_empty_amenities(airbnb_bitno$amenities, airbnb_bitno$id)
+
+#funkcija koja vraca dataframe bez redova gdje su amentites prazani
+airbnb_bitno=clean_Empty_Amenities(airbnb_bitno, vector_of_empty_amenities)
+
+#ponovno skidamo id jer kad maknemo prazne redove onda nastaju rupe
+airbnb_bitno <- subset(airbnb_bitno, select = -c(id))
+
+#refresh i dodavanje id-a nazad tako da ide 1,2,3,4.. do kraja bez rupa
+airbnb_bitno=get_Dataframe_With_Id_Row(airbnb_bitno)
+
+numOfRows=nrow(airbnb_bitno)
+
+########################################################
+
+#stvara listu koja sadrzi vector odvojenih amenitiesa za svaki red
+#u petlji se jos stvara i vector koji govori koliko je amenitiesa u odredenom redu
+list=list()
+number_of_amentites=c()
+vector_of_all_amenities=c()
+counter=0
+counter2=0
+for(i in 1:numOfRows) {
+  temp_vector_of_amenities=make_Vector_Of_Amentities(airbnb_bitno$amenities[i])
+  list[[i]]=temp_vector_of_amenities
+  number_of_amentites[i]=length(list[[i]])-1
+  size_of_temp=length(temp_vector_of_amenities)
+  counter2=counter2+1
+
+  
+  for(j in 1:size_of_temp) {
+    counter=counter+1
+    vector_of_all_amenities[counter]=temp_vector_of_amenities[j]
+  }
+}
+#dodaje dodatni column koji sadrzi broj amenitiesa za taj red
+airbnb_bitno <-  cbind(airbnb_bitno , number_of_amentites)
+
+#list_of_vectors_of_amenities=list()
+
+vector_of_unique_amenities=unique(vector_of_all_amenities)
+
+list_of_tests=list()
+#za svaki jedinstveni amenitie prolazi kroz dataframe
+#pravi vector koji sadrzi true ili false vrijednost
+#ovisno o tome je li stan u tom redu sadrzi taj amenitie
+#na kraju spaja taj vector sa pocetnim dataframeom
+#ovaj dio dodaje svih 129 amenitiea u airbnb_bitno 
+#zato je dataframe tako velik
+count129=0
+len_list=length(list)
+number_of_apartments_that__have_certain_amenitie_vector=c()
+for(i in 1:129) {
+  
+  
+  temp_vector_of_amenities=rep(F, 73218)
+  count129=count129+1
+  print(paste("Loaded ", count129, "out of 129 amenities"))
+  
+  current_counter=0
+  for (j in 1:len_list) {
+    if(vector_of_unique_amenities[i] %in% list[[j]]) {
+      temp_vector_of_amenities[j]=T
+      current_counter=current_counter+1
+    }
+  }
+  number_of_apartments_that__have_certain_amenitie_vector[i]=current_counter
+  airbnb_bitno <-  cbind(airbnb_bitno , temp_vector_of_amenities)
+  names(airbnb_bitno)[names(airbnb_bitno) == "temp_vector_of_amenities"] <- vector_of_unique_amenities[i]
+  
+  if(i<124) {
+   test=t.test(airbnb_bitno$price~temp_vector_of_amenities, mu=0, alt="two.sided", conf=0.99)
+   test$data.name=paste("price and ", vector_of_unique_amenities[i])
+   list_of_tests[[i]]=test
+    
+  }
+  
+}
+
+#izbacivanje testova koji nista ne znace:
+#translationmissingenhostingamenity49 i translationmissingenhostingamenity50
+
+clean_list_of_tests=list()
+number_of_tests=length(list_of_tests)
+counter=0
+for (i in 1:number_of_tests) {
+  if(list_of_tests[[i]]$data.name!="price and  translationmissingenhostingamenity50" && 
+     list_of_tests[[i]]$data.name!="price and  translationmissingenhostingamenity49") {
+    counter=counter+1
+    clean_list_of_tests[[counter]]=list_of_tests[[i]]
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#pregled koliko stanova ima koji amenitie
+
+names(number_of_apartments_that__have_certain_amenitie_vector)=vector_of_unique_amenities
+number_of_apartments_that__have_certain_amenitie_vector
+
+
+
+
+
+List_of_prices_per_city=sort_Numeric_Categorical(airbnb_bitno$price, airbnb_bitno$city)
+List_of_price_outliers_per_city=list()
+len=length(List_of_prices_per_city)
+
+#prebrojavanje outliera po gradovima
+number_of_outliers=list()
+relative_number_of_outliers=list()
+
+
+for(i in 1:len) {
+  num_of_apartments_per_city=length(List_of_prices_per_city[[i]])
+  
+  temp_vector=c(List_of_prices_per_city[[i]])
+
+  Q1=quantile(temp_vector, 0.25)
+  Q1=unname(Q1)
+  Q3=quantile(temp_vector, 0.75) 
+  Q3=unname(Q3)
+  IQR=Q3-Q1
+  
+  donja_granica=Q1 - 1.5*IQR
+  gornja_granica=Q3 + 1.5*IQR
+  print(paste("donja_granica",donja_granica))
+  print(paste("gornja_granica",gornja_granica))
+
+  temp_prices=c()
+  counter=0
+  for(j in 1:num_of_apartments_per_city) {
+    
+    if(temp_vector[j] >= gornja_granica || temp_vector[j] <= donja_granica){
+      counter = counter + 1
+      temp_prices[counter]=temp_vector[j] 
+
+      
+    }
+    
+  
+  number_of_outliers[[i]]=counter
+  relative_number_of_outliers[[i]]=counter/num_of_apartments_per_city
+  List_of_price_outliers_per_city[[i]]=temp_prices
+  }
+}
+  names(number_of_outliers) <- unique(airbnb_bitno$city)
+  names(relative_number_of_outliers) <- unique(airbnb_bitno$city)
+  names(List_of_price_outliers_per_city) <- unique(airbnb_bitno$city)
+  print("iz ispisa vidimo da su samo gornje granice bitne")
+  print("ocekivano, razdioba cijena je nagnuta u lijevo")
+```
+
+## Deskriptivna statistika 
+
+
+
+```{r deskriptiva statistika, echo=FALSE}
+
+
+  dfa<-subset(airbnb_bitno, select = c( price))
+  df <- data.frame(x = rnorm(5000),y=rnorm(5000))
+
+  
+  boxplot(log(List_of_prices_per_city[[1]]),xlab='NYC' , ylab='log_cijene')
+  boxplot(log(List_of_prices_per_city[[2]]),xlab='SF' , ylab='log_cijene')
+  boxplot(log(List_of_prices_per_city[[3]]),xlab='DC' , ylab='log_cijene')
+  boxplot(log(List_of_prices_per_city[[4]]),xlab='LA' , ylab='log_cijene')
+  boxplot(log(List_of_prices_per_city[[5]]),xlab='Chicago' , ylab='log_cijene')
+  boxplot(log(List_of_prices_per_city[[6]]),xlab='Boston' , ylab='log_cijene')
+  
+  hist(airbnb_bitno$accommodates, main = 'Histogram accomodates',col="darkmagenta",xlim=c(0,10), xlab = 'koliko je moguće ljudi smjestiti',
+       freq=TRUE)
+  
+  hist(airbnb_bitno$beds, main = 'Histogram beds',col="darkmagenta",xlim=c(0,8), xlab = 'koliko kreveta ima objekt',
+       freq=TRUE)
+  
+  v <- c(airbnb_bitno$city)
+  barplot(table(v), names.arg=c("NYC", "SF", "DC", "LA", "Chicago", "Boston"))
+  
+  z<-c(airbnb_bitno$room_type)
+  barplot((table(z)), names.arg = c("Entire home/apt", "Private room","Shared room"))
+  
+
+  pie<- subset(airbnb_bitno, select= c (WirelessInternet))
+  pie$WirelessInternet [pie$WirelessInternet =="TRUE" ]<- 2
+  pie$WirelessInternet [pie$WirelessInternet ==0 ]<- 1
+  lbls <- c("Without Wireless", "With Wireless")
+  pie(table(pie$WirelessInternet),main= "Wireless", labels=paste(prop.table(table(pie))*100, "%", sep = ""), 
+      col=rainbow(pie$WirelessInternet))
+  legend("topright", c("Without", "With"), cex=0.8,fill=rainbow(pie$WirelessInternet))
+```
+
+```{r odgovori na pitanja}
+#pitanja:
+
+#ima li neki grad znacajno veci broj outliera?
+relative_number_of_outliers
+#DC-ima najveci relativni udio outliera
+#za nas skup podataka outlieri su samo visoke cijene
+#jer je razdioba cijena nagnuta na lijevo
+#u iducem pitanju se vidi da od svih numerickih varijabli  iz
+#pocetnog dataseta accommodates najkoreliranija sa cijenom objekta
+#to svojstvo cemo koristiti i ovdje te cemo t-testom
+#pokazati da objekti u DC-u u prosjeku mogu primiti vise ljudi
+#u odnosi na prosjek svih objekata u svim gradovima
+mean_of_all_cities_accommodates=mean(airbnb_bitno$accommodates)
+vector_of_positions=get_DC(airbnb_bitno$city, airbnb_bitno$id)
+dc=airbnb_bitno[vector_of_positions,] 
+dc <- subset(dc, select = -c(id))
+
+
+dc=get_Dataframe_With_Id_Row(dc)
+
+test=t.test(dc$accommodates, mu=mean_of_all_cities_accommodates, alt="two.sided", conf=0.99)
+print(paste("svi gradovi accommodates:", mean_of_all_cities_accommodates," DC: ", test$estimate))
+print(paste("mean je povecan za:", ((test$estimate-mean_of_all_cities_accommodates)
+                                    /mean_of_all_cities_accommodates), "posto" ))
+print(test)
+
+
+#u DC-u 357 outliera su objekti sa bar 5 accommodatesa
+#ukupno outliera je 663
+#prema gornja_granica=Q3+1.5IQR
+outlier_price=435
+
+dc_price_per_accommodates=sort_Numeric_Numeric(dc$price, dc$accommodates)
+list_numbers=list(5,6,7,8,9,10,11,12,13,14,15,16)
+counter=0
+big_apartments=length(list_numbers)
+for (i in 1:big_apartments) {
+  current=list_numbers[[i]]
+  l=length(dc_price_per_accommodates[[current]])
+  ll=dc_price_per_accommodates[[current]]
+  for (i in 1:l) {
+    if (ll[i]>outlier_price) {
+      counter=counter+1
+    }
+  }
+  
+}
+print(paste("broj outliera sa preko 5 accommodates: ",counter))
+
+
+
+  
+#Koja od varijabli je najvise korelirana sa cijenom ugostiteljskog objekta? Ima li to smisla?
+  airbnb_korelacija <- subset(airbnb_bitno, select = -c(property_type,room_type,cancellation_policy,cleaning_fee,city))
+  airbnb_korelacija[is.na(airbnb_korelacija)] <- 0
+  airbnb_korelacija <- lapply(airbnb_korelacija, as.numeric)
+  with(airbnb_korelacija, cor(price, accommodates))
+  with(airbnb_korelacija, cor(price, bathrooms))
+  with(airbnb_korelacija, cor(price, number_of_reviews))
+  with(airbnb_korelacija, cor(price, bedrooms))
+  with(airbnb_korelacija, cor(price, beds))
+
+#od numerickih varijabli najkoreliranija je accomodates
+#sada ide provjera za amenitiese
+#uzimamo samo testove koji imaju preko 10000 stupnjeva slobode
+list_of_strings_correlation=list() 
+list_of_tests_enough_degrees_of_freedom=list()
+number_of_valid_tests=length(clean_list_of_tests)
+  counter=0
+  for (i in 1:number_of_valid_tests) {
+    if(clean_list_of_tests[[i]]$parameter>=10000) {
+      temp_string=paste(clean_list_of_tests[[i]]$data.name, clean_list_of_tests[[i]]$conf.int[1],
+" ", clean_list_of_tests[[i]]$conf.int[2],": p-value ", clean_list_of_tests[[i]]$p.value )
+      counter=counter+1
+      list_of_tests_enough_degrees_of_freedom[[counter]]=clean_list_of_tests[[i]]
+      list_of_strings_correlation[[counter]]=temp_string
+      print(temp_string)
+      print("\n")
+    }
+  }
+  print(paste("broj amenitiesa koji imaju više od 10000 stupnjeva slobode", counter))
+  print("p-value 0 indicates extremly high correlation")
+  print("nas izbor 5 preporuka iznajmljivacima je imati:")
+  print("TV, CableTV, Freeparkingonpremises, Familykidfriendly, Fireextinguisher")
+  
+# ima smisla da je broj osoba koje aparatman moze primiti uskokoreliran sa brojem osoba koje ce 
+# rezervirati apartman pa tako i sa cijenom
+# od amenitiesa je uvjek pozeljno imati tv i kabelsku, besplatan parking na posjedu
+# kao i biti pirpremljen na dolazak obitelji sa djecom
+# vatrogasni aparat je vazan element sigurnosti i indicira na dobro opremljen apartman
+  
+  
+  
+  
+  
+
+
+
+#varijable koje smo odabrali: TV, CableTV, Freeparkingonpremises, Familykidfriendly, Fireextinguisher
+#kominacije varijabli koje predvidaju cijenu:
+#kombinacija1:TV, CableTV,Freeparkingonpremises
+#kombinacija2:TV, CableTV,Familykidfriendly
+#kombinacija3:TV, CableTV,Fireextinguisher
+#kombinacija4:TV, Freeparkingonpremises, Familykidfriendly
+#kombinacija5:TV, Freeparkingonpremises, Fireextinguisher
+#kombinacija6:TV, Familykidfriendly, Fireextinguisher
+#kombinacija7:CableTV,Freeparkingonpremises, Familykidfriendly
+#kombinacija8:CableTV,Freeparkingonpremises, Fireextinguisher
+#kombinacija9:CableTV,Familykidfriendly, Fireextinguisher
+#kombinacija10: Freeparkingonpremises, Familykidfriendly, Fireextinguisher
+
+tv_vector=airbnb_bitno["TV"]
+cabletv_vector=airbnb_bitno["CableTV"]
+freeparkingonpremises_vector=airbnb_bitno["Freeparkingonpremises"]
+familykidfriendly_vector=airbnb_bitno["Familykidfriendly"]
+fireextinguisher_vector=airbnb_bitno["Fireextinguisher"]
+
+comb1=c(tv_vector&cabletv_vector&freeparkingonpremises_vector)
+comb2=c(tv_vector&cabletv_vector&familykidfriendly_vector)
+comb3=c(tv_vector&cabletv_vector&fireextinguisher_vector)
+
+comb4=c(tv_vector&freeparkingonpremises_vector&familykidfriendly_vector)
+comb5=c(tv_vector&freeparkingonpremises_vector&fireextinguisher_vector)
+
+comb6=c(tv_vector&familykidfriendly_vector&fireextinguisher_vector)
+
+comb7=c(cabletv_vector&freeparkingonpremises_vector&familykidfriendly_vector)
+comb8=c(cabletv_vector&freeparkingonpremises_vector&fireextinguisher_vector)
+comb9=c(cabletv_vector&familykidfriendly_vector&fireextinguisher_vector)
+
+comb10=c(freeparkingonpremises_vector&familykidfriendly_vector&fireextinguisher_vector)
+
+airbnb_bitno <-  cbind(airbnb_bitno , comb1, comb2, comb3, comb4, comb5,
+                       comb6, comb7, comb8, comb9, comb10)
+
+list_of_combinations=list(comb1, comb2, comb3, comb4, comb5,
+                          comb6, comb7, comb8, comb9, comb10)
+list_of_combinations_tests=list()
+
+for(i in 1:10) {
+  test=t.test(airbnb_bitno$price~list_of_combinations[[i]], mu=0, alt="two.sided", conf=0.99)
+  print(paste("comb",i, test$conf.int[1], test$conf.int[2], "p-value:",test$p.value ))
+}
+
+#odabiremo kombinaciju 2 i 6 jer imaju najmanju p vrijednost
+#medutim, kako je u kombinaciji 2 Tv i CableTV koji su izuzetno korelirani
+#kombinacija koja nabolje predvida cijenu po nama je
+#kombinacija6:TV, Familykidfriendly, Fireextinguisher
+
+
+
+
+
+
+#Mozemo li pretpostaviti nekakvu distribuciju nad cijenama objekata za pojedine gradove?
+#mozemo, noramlnu distrubuciju nad logaritmiranim cijenama, evo i grafova po gradovima
+library(fitdistrplus)
+
+#NYC
+normal_dist <- fitdist(log(List_of_prices_per_city[[1]]), "norm")
+plot(normal_dist)
+
+#SF
+normal_dist<- fitdist(log(List_of_prices_per_city[[2]]), "norm")
+plot(normal_dist)
+
+#DC
+normal_dist <- fitdist(log(List_of_prices_per_city[[3]]), "norm")
+plot(normal_dist)
+
+#LA
+normal_dist <- fitdist(log(List_of_prices_per_city[[4]]), "norm")
+plot(normal_dist)
+
+#Chicago
+normal_dist <- fitdist(log(List_of_prices_per_city[[5]]), "norm")
+plot(normal_dist)
+
+#Boston
+normal_dist <- fitdist(log(List_of_prices_per_city[[6]]), "norm")
+plot(normal_dist)
+
+
+
+
+#Ima li neki grad statisticki znacajno vece cijene ugostiteljskih objekata nego neki drugi grad?
+
+
+#uporedba cijena apartmana po svakom gradu sa meanom cijena svih apartmana u dataframeu
+mean_of_all_cities=mean(airbnb_bitno$price)
+print(paste("mean cijena apartmana u svim stanovima je", mean_of_all_cities))
+city_names=unique(airbnb_bitno$city)
+
+
+
+for (i in 1:6) {
+  city_prices_tests=list()
+  test=t.test(List_of_prices_per_city[[i]], mu=mean_of_all_cities, alt="two.sided", conf=0.99)
+  test$data.name=paste(city_names[i], "mean price")
+  print(test)
+}
+
+print("iz navedenih cijena vidimo da San Francisco ima znacajno veće cijene od prosjeka")
+
+#na interentu smo pronasli podatak da San Francisco je drugi najgusce naseljeni grad u SAD-u
+#sto znacajno utjece na cijenu apartmana, kao i podatak da je izuzetno turisticki posjecen
+#sto takoder dize cijenu apartmana
+
+
+
+
+
+
+#Utjece li znacajno naknada za ciscenje ugostiteljskog objekta na prosjeˇcnu cijenu objekta?
+cleaning_fee_test=t.test(airbnb_bitno$price~airbnb_bitno$cleaning_fee, mu=0, alt="two.sided", conf=0.99)
+print(cleaning_fee_test)
+#utjece, ali ne u tolikoj mjeri kao neke druge "vaznije varijable" navedene gore
+#takoder iako je p-vrijendost mala, nije mala kao u vec prije navedenim varijablama
+
+
+#Koje biste mjere preporucili iznajmljivacima kuca u NYC kako bi potencijalno mogli
+#povecati cijenu nocenja (pod pretpostavkom da svi iznajmljivaci imaju jednaku popunjenost)?
+#ocekujemo isti zakljucak kao i kada smo odabrali 5 varijabli 
+#za koje smo vidjeli veoma malu p-vrijednost
+#a to su: TV, CableTV, Freeparkingonpremises, Familykidfriendly, Fireextinguisher
+#kod je isti kao i za sve stanove
+#samo trazimo da test ima bar 5000 stupnjeva slobode umjesto dosadasnjih 10000
+
+vector_of_positions=get_positions_of_nyc_houses(airbnb_bitno$property_type, airbnb_bitno$id)
+nyc=airbnb_bitno[vector_of_positions,] 
+nyc <- subset(nyc, select = -c(id))
+
+
+nyc=get_Dataframe_With_Id_Row(nyc)
+
+#iz nekog razloga petlja puca za i= 116, 118, 120 i 121 pa smo skratili petlju do 115
+#u vektoru number_of_apartments_that__have_certain_amenitie_vector[115:129]
+#se vidi da ti amenitisi gotovo pa uopce nisu bitni
+list_of_nyc_tests=list()
+position_of_first_amenitie=15
+for (i in 1:115) {
+
+
+  test=t.test(nyc$price~nyc[,position_of_first_amenitie+i], mu=0, alt="two.sided", conf=0.99)
+  test$data.name=paste("nyc price and ", vector_of_unique_amenities[i])
+  list_of_nyc_tests[[i]]=test
+
+}
+clean_list_of_nyc_tests=list()
+number_of_tests=length(list_of_nyc_tests)
+counter=0
+for (i in 1:number_of_tests) {
+  if(list_of_nyc_tests[[i]]$data.name!="nyc price and  translationmissingenhostingamenity50" && 
+     list_of_nyc_tests[[i]]$data.name!="nyc price and  translationmissingenhostingamenity49") {
+    counter=counter+1
+    clean_list_of_nyc_tests[[counter]]=list_of_nyc_tests[[i]]
+  }
+}
+
+
+list_of_strings_correlation_nyc=list() 
+list_of_tests_enough_degrees_of_freedom_nyc=list()
+number_of_valid_tests_nyc=length(clean_list_of_nyc_tests)
+counter=0
+for (i in 1:number_of_valid_tests_nyc) {
+  if(clean_list_of_nyc_tests[[i]]$parameter>=5000) {
+    temp_string=paste(clean_list_of_nyc_tests[[i]]$data.name, clean_list_of_nyc_tests[[i]]$conf.int[1], clean_list_of_tests[[i]]$conf.int[2],": p-value", clean_list_of_nyc_tests[[i]]$p.value )
+    counter=counter+1
+    list_of_tests_enough_degrees_of_freedom_nyc[[counter]]=clean_list_of_nyc_tests[[i]]
+    list_of_strings_correlation_nyc[[counter]]=temp_string
+    print(temp_string)
+    print("\n")
+  }
+}
+
+#zakljucak je da: TV, CableTV, Freeparkingonpremises, Familykidfriendly, Fireextinguisher
+#su stvari koje ce iznajmljivacima kuca u nyc povecati najam
+
+```
+
+
+
+```
+
