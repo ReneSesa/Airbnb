@@ -47,7 +47,7 @@ Various parameters included ( over 100 parameters) like:
 
 ### How To Use
 
-To get the dataset used in this project contact: rene.sesa@fer.hr
+To get the dataset used in this project please contact: rene.sesa@fer.hr
 
 
 1. Install R and RStudio
