@@ -37,8 +37,8 @@ Various parameters are included ( over 100 parameters) like:
 ### Technologies
 
 
--RStudio ( https://rstudio.com/products/rstudio/download/#download ) 
--R ( https://cran.rstudio.com/ )
+- RStudio ( https://rstudio.com/products/rstudio/download/#download ) 
+- R ( https://cran.rstudio.com/ )
 
 
 ---
