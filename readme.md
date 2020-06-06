@@ -33,6 +33,8 @@ Various parameters are included ( over 100 parameters) like:
 - cleaning fee
 - over a hundred amenities like: parking, TV, Internet, Wi-Fi etc.
 
+---
+
 
 ### Technologies
 
