@@ -23,7 +23,7 @@ Data analysis of prices in 6 major USA cities:
 5. San Francisco
 6. Washington D.C.
 
-Various parameters are included ( over 100 parameters) like:
+Various parameters included ( over 100 parameters) like:
 - number of beds
 - number of bedrooms
 - number of accommodates
