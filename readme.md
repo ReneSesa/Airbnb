@@ -52,9 +52,9 @@ To get the dataset used in this project contact: rene.sesa@fer.hr
 
 1. Install R and RStudio
 2. Make some directory (ex. "AIRBNB")
-3. put main_sap_rozi_jednorozi.Rmd and functions.r files in directory ("AIRBNB")
+3. Put main_sap_rozi_jednorozi.Rmd and functions.r files in directory ("AIRBNB")
 4. Open main_sap_rozi_jednorozi.Rmd
-5. run
+5. Run
 
 
 ---
