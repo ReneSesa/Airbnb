@@ -47,6 +47,9 @@ Various parameters included ( over 100 parameters) like:
 
 ### How To Use
 
+To get the dataset used in this project contact: rene.sesa@fer.hr
+
+
 1. Install R and RStudio
 2. Make some directory (ex. "AIRBNB")
 3. put main_sap_rozi_jednorozi.Rmd and functions.r files in directory ("AIRBNB")
