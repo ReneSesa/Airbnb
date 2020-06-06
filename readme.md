@@ -24,14 +24,14 @@ Data analysis of prices in 6 major USA cities:
 6. Washington D.C.
 
 Various parameters are included ( over 100 parameters) like:
--number of beds
--number of bedrooms
--number of accommodates
--property type
--room type
--number of bathrooms
--cleaning fee
--over a hundred amenities like: parking, TV, Internet, Wi-Fi etc.
+- number of beds
+- number of bedrooms
+- number of accommodates
+- property type
+- room type
+- number of bathrooms
+- cleaning fee
+- over a hundred amenities like: parking, TV, Internet, Wi-Fi etc.
 
 
 ### Technologies
