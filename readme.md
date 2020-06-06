@@ -56,4 +56,4 @@ Various parameters are included ( over 100 parameters) like:
 
 ### Author
 
-Rozi jednorozi 2020
+AIRBNB by Rozi jednorozi 2020.
