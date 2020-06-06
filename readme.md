@@ -1,19 +1,19 @@
-#AIRBNB
+# AIRBNB
 
 
 
-## Table of Contents
+### Table of Contents
 You're sections headers will be used to reference location of destination.
 
 - [Description](#description)
 - [How To Use](#how-to-use)
 - [References](#references)
 - [License](#license)
-- [Author Info](#author-info)
+- [Author](#author)
 
 ---
 
-## Description
+### Description
 
 Data analysis of prices in 6 major USA cities: 
 1. New York
@@ -34,7 +34,7 @@ Various parameters are included ( over 100 parameters) like:
 -over a hundred amenities like: parking, TV, Internet, Wi-Fi etc.
 
 
-## Technologies
+### Technologies
 
 
 -RStudio ( https://rstudio.com/products/rstudio/download/#download ) 
@@ -43,7 +43,7 @@ Various parameters are included ( over 100 parameters) like:
 
 ---
 
-## How To Use
+### How To Use
 
 1. Install R and RStudio
 2. Make some directory (ex. "AIRBNB")
@@ -54,6 +54,6 @@ Various parameters are included ( over 100 parameters) like:
 
 ---
 
-## Author
+### Author
 
-Rozi jednorozi
+Rozi jednorozi 2020
